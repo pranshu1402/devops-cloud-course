@@ -1,0 +1,49 @@
+#################### TASK 1: System Monitoring Setup###################
+Objective: Configure a monitoring system to ensure the development 
+environment’s health, performance, and capacity planning.
+
+Bash Commands:
+
+To Install a monitoring tools (htop & nmon) & to register a cron to run every minute 
+for monitoring CPU, memory, and process usages run below commands. 
+Logs should automatically start generating within [script_directory]/monitoring-logs
+
+- `chmod +x ./assignment_3/task1/setup_monitoring.sh`
+- `sudo sh ./assignment_3/task1/setup_monitoring.sh`
+
+Additionally to run a monitoring tool:
+- `htop`
+
+###########################################################################
+
+
+################ TASK 2: USER ACCESS CONTROL & MANAGEMENT #################
+Objective: Set up user accounts and configure secure access controls for the new developers.
+
+Bash commands:
+
+To automatically set a strong password policy for all new users created in system
+- `sudo sh ./assignment_3/task2/setup_password_policy.sh`
+
+To create a user in system with workspace and system generated password
+- `sudo sh ./assignment_3/task2/setup_user_account.sh <username>
+
+To create a user in system with workspace (/home/<username>/workspace) and set password
+- `sudo sh ./assignment_3/task2/setup_user_account.sh <username> <password>`
+
+###########################################################################
+
+
+################ TASK 2: USER ACCESS CONTROL & MANAGEMENT #################
+Objective: Configure automated backups for Sarah’s Apache server and Mike’s 
+Nginx server to ensure data integrity and recovery.
+
+Bash commands:
+
+To setup sarah's apache2 server with backups cron enabled
+- `sudo sh ./assignment_3/task3/setup_user_server_with_backup.sh sarah apache2`
+
+To setup mike's nginx server with backups cron enabled
+- `sudo sh ./assignment_3/task3/setup_user_server_with_backup.sh mike nginx`
+
+###########################################################################
