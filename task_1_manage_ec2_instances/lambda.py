@@ -29,14 +29,19 @@ Instructions:
    - Go to the EC2 dashboard and confirm that the instances' states have changed according to their tags.
 """
 
-# Lambda Function Py Script
+# Lambda Function
 
 import boto3
 
 def lambda_handler(event, context):
     try:
         ec2_client = boto3.client('ec2')
-        ec2_instances = ec2_client.describe_instances()
+        ec2_instances = ec2_client.describe_instances(
+            InstanceIds=[
+                'i-016af811fe88d5d8b',
+                'i-0e8e27a455feb9722'
+            ]
+        )
 
         for reservation in ec2_instances['Reservations']:
             for instance in reservation['Instances']:

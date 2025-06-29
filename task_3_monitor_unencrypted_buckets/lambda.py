@@ -22,18 +22,21 @@ Instructions:
 	- Review the Lambda logs to identify the buckets without server-side encryption.
 """
 
-# Lambda Function Py Script
+# Lambda Function
 
 import boto3
 
 def lambda_handler(event, context):
 	try:
 		s3_client = boto3.client('s3')
-		s3_buckets = s3_client.list_buckets()
+		s3_buckets = s3_client.list_buckets(
+			BucketRegion='us-west-2'
+		)
 		for bucket in s3_buckets['Buckets']:
 			bucket_name = bucket['Name']
 			bucket_encryption = s3_client.get_bucket_encryption(Bucket=bucket_name)
-			if 'ServerSideEncryptionConfiguration' not in bucket_encryption:
+			server_side_encryption = bucket_encryption['ServerSideEncryptionConfiguration']
+			if server_side_encryption == None or server_side_encryption['Rules'][0]['BucketKeyEnabled'] == False:
 				print(f"Unencrypted bucket found: {bucket_name}")
 	except Exception as e:
 		print(f"Error: {e}")

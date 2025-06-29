@@ -29,22 +29,22 @@ Instructions:
    - Go to the S3 dashboard and confirm that only files newer than 30 days remain.
 """
 
-# Lambda Function Py Script
+# Lambda Function
 
 import boto3
-from datetime import datetime
+from datetime import datetime, timezone
 
 def lambda_handler(event, context):
     try:
         s3_client = boto3.client('s3')
-        s3_bucket_name = 'pg_recent_30_bucket'
+        s3_bucket_name = 'pranshu-b11'
 
         bucket_objects = s3_client.list_objects_v2(Bucket=s3_bucket_name)
 
         for obj in bucket_objects['Contents']:
             obj_key = obj['Key']
             obj_last_modified = obj['LastModified']
-            obj_age = (datetime.now() - obj_last_modified).days
+            obj_age = (datetime.now(timezone.utc) - obj_last_modified).days
 
             if obj_age > 30:
                 s3_client.delete_object(Bucket=s3_bucket_name, Key=obj_key)

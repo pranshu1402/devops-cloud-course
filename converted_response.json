@@ -1,0 +1,26 @@
+{
+  "ResponseMetadata": {
+    "RequestId": "JT3R06NPM6NH8W0K",
+    "HostId": "ZFHETMMXlogjXekF37EIS/7cmyYdstB9tLlCjdzjqCb3qHoYw9OL50Nu6y+Kbdthj9NDcC3Gkt+/o7QxkW7iNA==",
+    "HTTPStatusCode": 200,
+    "HTTPHeaders": {
+      "x-amz-id-2": "ZFHETMMXlogjXekF37EIS/7cmyYdstB9tLlCjdzjqCb3qHoYw9OL50Nu6y+Kbdthj9NDcC3Gkt+/o7QxkW7iNA==",
+      "x-amz-request-id": "JT3R06NPM6NH8W0K",
+      "date": "Sun, 06 Jul 2025 18:53:26 GMT",
+      "transfer-encoding": "chunked",
+      "server": "AmazonS3"
+    },
+    "RetryAttempts": 0
+  },
+  "ServerSideEncryptionConfiguration": {
+    "Rules": [
+      {
+        "ApplyServerSideEncryptionByDefault": {
+          "SSEAlgorithm": "aws:kms",
+          "KMSMasterKeyID": "fake-key-id-for-disable"
+        },
+        "BucketKeyEnabled": false
+      }
+    ]
+  }
+}

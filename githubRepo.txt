@@ -1,0 +1,21 @@
+## Assignment - Serverless Architecture & Cloud Automation
+
+REPO: https://github.com/pranshu1402/devops-cloud-course
+
+Submitted tasks:
+
+### Task 1 - Manage EC2 Instances
+Lambda code inside task_1_manage_ec2_instances > lambda.py
+Screenshots: task_1_manage_ec2_instances > *.jpg
+
+### Task 2 - Auto Cleanup S3 Bucket
+Lambda code inside task_2_auto_cleanup_s3_bucket > lambda.py
+Screenshots: task_2_auto_cleanup_s3_bucket > *.jpg
+
+### Task 3 - Monitor Unencrypted Bucket
+Lambda code inside task_3_monitor_unencrypted_buckets > lambda.py
+Screenshots: task_3_monitor_unencrypted_buckets > *.jpg
+
+### Task 5 - Auto Tag EC2 Instances on Launch
+Lambda code inside task_5_auto_tag_ec2_instances > lambda.py
+Screenshots: task_5_auto_tag_ec2_instances > *.jpg

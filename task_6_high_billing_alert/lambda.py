@@ -30,7 +30,7 @@ Instructions:
       - If your billing is over the threshold, you should receive an email alert.
 """
 
-# Lambda Function Py Script
+# Lambda Function
 import boto3
 import datetime
 import os
