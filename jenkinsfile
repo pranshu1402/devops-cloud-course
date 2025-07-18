@@ -1,0 +1,243 @@
+pipeline {
+    agent any
+    
+    environment {
+        PYTHON_VERSION = '3.10'
+        VENV_NAME = 'venv'
+        APP_DIR = 'expense-tracker-main'
+    }
+    
+    triggers {
+        pollSCM('H/5 * * * *')  // Poll SCM every 5 minutes
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out code from repository...'
+                checkout scm
+            }
+        }
+        
+        stage('Setup Python Environment') {
+            steps {
+                echo 'Setting up Python virtual environment...'
+                script {
+                    // Install Python if not available
+                    sh '''
+                        if ! command -v python3 &> /dev/null; then
+                            echo "Python3 not found, installing..."
+                            sudo apt-get update
+                            sudo apt-get install -y python3 python3-pip python3-venv
+                        fi
+                    '''
+                    
+                    // Create virtual environment
+                    dir(APP_DIR) {
+                        sh '''
+                            python3 -m venv ${VENV_NAME}
+                            source ${VENV_NAME}/bin/activate
+                            pip install --upgrade pip
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing Python dependencies...'
+                dir(APP_DIR) {
+                    sh '''
+                        source ${VENV_NAME}/bin/activate
+                        pip install -r requirements.txt
+                    '''
+                }
+            }
+        }
+        
+        stage('Lint Check') {
+            steps {
+                echo 'Running lint checks...'
+                dir(APP_DIR) {
+                    sh '''
+                        source ${VENV_NAME}/bin/activate
+                        pip install flake8 pylint
+                        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+                        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+                    '''
+                }
+            }
+        }
+        
+        stage('Security Check') {
+            steps {
+                echo 'Running security checks...'
+                dir(APP_DIR) {
+                    sh '''
+                        source ${VENV_NAME}/bin/activate
+                        pip install bandit
+                        bandit -r . -f json -o bandit-report.json || true
+                    '''
+                }
+            }
+        }
+        
+        stage('Unit Tests') {
+            steps {
+                echo 'Running unit tests...'
+                dir(APP_DIR) {
+                    sh '''
+                        source ${VENV_NAME}/bin/activate
+                        pip install pytest pytest-cov
+                        python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=html || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    dir(APP_DIR) {
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'htmlcov',
+                            reportFiles: 'index.html',
+                            reportName: 'Coverage Report'
+                        ])
+                    }
+                }
+            }
+        }
+        
+        stage('Build Application') {
+            steps {
+                echo 'Building the application...'
+                dir(APP_DIR) {
+                    sh '''
+                        source ${VENV_NAME}/bin/activate
+                        python -m py_compile main.py
+                        python -m py_compile app/*.py
+                        echo "Build completed successfully!"
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy to Staging') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying to staging environment...'
+                script {
+                    // Set environment variables for staging
+                    env.STAGING_DB_URI = "${STAGING_DB_URI}"
+                    env.STAGING_SECRET_KEY = "${STAGING_SECRET_KEY}"
+                    
+                    dir(APP_DIR) {
+                        sh '''
+                            source ${VENV_NAME}/bin/activate
+                            
+                            # Create deployment directory
+                            sudo mkdir -p /opt/expense-tracker-staging
+                            sudo cp -r . /opt/expense-tracker-staging/
+                            
+                            # Set up environment variables
+                            echo "export DB_URI=${STAGING_DB_URI}" | sudo tee /opt/expense-tracker-staging/.env
+                            echo "export SECRET_KEY=${STAGING_SECRET_KEY}" | sudo tee -a /opt/expense-tracker-staging/.env
+                            
+                            # Set up systemd service
+                            sudo tee /etc/systemd/system/expense-tracker-staging.service > /dev/null <<EOF
+[Unit]
+Description=Expense Tracker Staging
+After=network.target
+
+[Service]
+Type=simple
+User=jenkins
+WorkingDirectory=/opt/expense-tracker-staging
+Environment=PATH=/opt/expense-tracker-staging/${VENV_NAME}/bin
+ExecStart=/opt/expense-tracker-staging/${VENV_NAME}/bin/python main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+                            
+                            # Reload systemd and restart service
+                            sudo systemctl daemon-reload
+                            sudo systemctl enable expense-tracker-staging
+                            sudo systemctl restart expense-tracker-staging
+                            
+                            echo "Deployment to staging completed!"
+                        '''
+                    }
+                }
+            }
+        }
+        
+        stage('Health Check') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Performing health check...'
+                script {
+                    // Wait for application to start
+                    sleep(10)
+                    
+                    // Check if application is running
+                    sh '''
+                        if curl -f http://localhost:5000/health || curl -f http://localhost:5000/; then
+                            echo "Health check passed!"
+                        else
+                            echo "Health check failed!"
+                            exit 1
+                        fi
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Cleaning up workspace...'
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+            emailext (
+                subject: "SUCCESS: Jenkins Build - ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                body: """
+                <p>Build Status: <b>SUCCESS</b></p>
+                <p>Job Name: ${env.JOB_NAME}</p>
+                <p>Build Number: ${env.BUILD_NUMBER}</p>
+                <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                <p>Git Commit: ${env.GIT_COMMIT}</p>
+                <p>Branch: ${env.GIT_BRANCH}</p>
+                """,
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']],
+                mimeType: 'text/html'
+            )
+        }
+        failure {
+            echo 'Pipeline failed!'
+            emailext (
+                subject: "FAILURE: Jenkins Build - ${env.JOB_NAME} [${env.BUILD_NUMBER}]",
+                body: """
+                <p>Build Status: <b>FAILED</b></p>
+                <p>Job Name: ${env.JOB_NAME}</p>
+                <p>Build Number: ${env.BUILD_NUMBER}</p>
+                <p>Build URL: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+                <p>Git Commit: ${env.GIT_COMMIT}</p>
+                <p>Branch: ${env.GIT_BRANCH}</p>
+                <p>Please check the build logs for more details.</p>
+                """,
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']],
+                mimeType: 'text/html'
+            )
+        }
+    }
+}
